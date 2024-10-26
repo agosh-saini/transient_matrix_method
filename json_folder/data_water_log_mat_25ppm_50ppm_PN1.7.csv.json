@@ -1,8 +1,17 @@
 {
-    "filename": "data_log_20241018_133756_25ppm_PN.7.csv",
-    "Analyte": "data",
-    "Material": "log",
-    "ppm": "25",
+    "filename": "data_water_log_mat_25ppm_50ppm_PN1.7.csv",
+    "Analyte": [
+        "data",
+        "water"
+    ],
+    "Material": [
+        "mat",
+        "log"
+    ],
+    "ppm": [
+        25,
+        50
+    ],
     "timestep": 1.5747058823529412,
     "ON": [
         48412482.09343319,
@@ -45,6 +54,7 @@
         -2043200616.556218,
         25844294.32929663
     ],
+    "Sensor Type": "PN1.7",
     "RC_on": {
         "Delta_R": -41088295,
         "tau": 9
