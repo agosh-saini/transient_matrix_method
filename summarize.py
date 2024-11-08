@@ -6,20 +6,16 @@
 # Description: This script summarizes the data from JSON files
 ######################################################
 
-import numpy as np
-import pandas as pd
 import os
-import json
+import pandas as pd
 import matplotlib.pyplot as plt
+import json
 
 class DataSummary:
 
     def __init__(self, data_dir):
         '''
         Initialize the class with the directory containing JSON files.
-
-        Parameters:
-            data_dir: directory containing JSON files
         '''
         self.data_dir = data_dir
         self.data = self.load_data()
@@ -27,9 +23,6 @@ class DataSummary:
     def load_data(self):
         '''
         Load data from JSON files in the specified directory.
-
-        Returns:
-            data: dictionary containing loaded data
         '''
         data = {}
         for file in os.listdir(self.data_dir):
@@ -41,36 +34,25 @@ class DataSummary:
     def summarize_data(self):
         '''
         Summarize the data from the loaded JSON files.
-
-        Returns:
-            summary: dictionary containing summarized data
         '''
         summary = {}
         for file, content in self.data.items():
             summary[file] = {
                 'Filename': content['filename'],
-                'Analyte': content['Analyte'],
-                'Material': content['Material'],
-
+                'Analyte': content['Analyte'][0],   # Extract single element from list
+                'Material': content['Material'][0], # Extract single element from list
                 'Conc': content['ppm'],
-
                 'Sensor ID': content['Sensor Type'],
-                
                 'Delta R On': content['RC_on']['Delta_R'],
                 'Tau On': content['RC_on']['tau'],
-
                 'Delta R Off': content['RC_off']['Delta_R'],
                 'Tau Off': content['RC_off']['tau'],
-
             }
         return summary
     
     def generate_csv(self, output_dir):
         '''
         Generate a CSV file from the summarized data.
-
-        Parameters:
-            output_dir: directory to save the CSV file
         '''
         summary = self.summarize_data()
         df = pd.DataFrame(summary).T
@@ -80,32 +62,14 @@ class DataSummary:
     def split_csv_ppm(self, output_dir):
         '''
         Split the CSV file based on the concentration.
-
-        Parameters:
-            output_dir: directory to save the split CSV files
         '''
         df = pd.read_csv(os.path.join(output_dir, 'summary.csv'))
+        df['Filename_Prefix'] = df['Filename'].apply(lambda x: x.split("_")[0])
         for conc in df['Conc'].unique():
+            file_name = f'{df["Filename_Prefix"].iloc[0]}_{df["Analyte"].iloc[0]}_{df["Material"].iloc[0]}_summary_{conc}.csv'
             df_conc = df[df['Conc'] == conc]
-            df_conc.to_csv(os.path.join(output_dir, f'summary_{conc}.csv'), index=False)
+            df_conc.to_csv(os.path.join(output_dir, file_name), index=False)
         print('CSV files split successfully!')
-
-    def plot_delta_r_per_sensor(self, output_dir):
-        '''
-        Plot the Delta R values for each sensor with all concentrations in one figure.
-        '''
-        df = pd.read_csv(os.path.join(output_dir, 'summary.csv'))
-        for sensor in df['Sensor ID'].unique():
-            plt.figure()
-            for conc in df['Conc'].unique():
-                df_conc = df[(df['Conc'] == conc) & (df['Sensor ID'] == sensor)]
-                plt.scatter([sensor]*len(df_conc), df_conc['Delta R On'], label=f'{conc} ppm')
-            plt.xlabel('Sensor ID')
-            plt.ylabel('Delta R On')
-            plt.title(f'Delta R On vs Concentration for Sensor {sensor}')
-            plt.legend(title='Concentration (ppm)')
-            plt.savefig(os.path.join(output_dir, f'delta_r_sensor_{sensor}.png'))
-            plt.close()
 
     def plot_delta_r_grouped_by_prefix(self, output_dir):
         '''
@@ -113,10 +77,12 @@ class DataSummary:
         and save a large, high-resolution version of the image.
         '''
         df = pd.read_csv(os.path.join(output_dir, 'summary.csv'))
-        df['Sensor Prefix'] = df['Sensor ID'].apply(lambda x: x.split('.')[0])  # Extract the prefix
+        df['Sensor Prefix'] = df['Sensor ID'].apply(lambda x: x.split('.')[0])
+        df['Filename_Prefix'] = df['Filename'].apply(lambda x: x.split("_")[0])
 
         for prefix in df['Sensor Prefix'].unique():
-            plt.figure(figsize=(16, 10))  # Set a large figure size for high resolution
+            plt.figure(figsize=(16, 10))
+            file_name = f'{df["Filename_Prefix"].iloc[0]}_{df["Analyte"].iloc[0]}_{df["Material"].iloc[0]}_delta_r_on_{prefix}.png'
             
             df_prefix = df[df['Sensor Prefix'] == prefix]
             
@@ -129,19 +95,21 @@ class DataSummary:
             plt.title(f'Delta R On for Sensors with Prefix {prefix}')
             plt.yscale('log')
             plt.legend(title='Concentration (ppm)')
-            plt.savefig(os.path.join(output_dir, f'delta_r_on_{prefix}.png'), dpi=300)  # Save with high DPI for better quality
+            plt.savefig(os.path.join(output_dir, file_name), dpi=300)
             plt.close()
 
     def plot_tau_grouped_by_prefix(self, output_dir):
         '''
-        Plot the Delta R values for each sensor prefix with all concentrations in one figure
+        Plot the Tau On values for each sensor prefix with all concentrations in one figure
         and save a large, high-resolution version of the image.
         '''
         df = pd.read_csv(os.path.join(output_dir, 'summary.csv'))
-        df['Sensor Prefix'] = df['Sensor ID'].apply(lambda x: x.split('.')[0])  # Extract the prefix
+        df['Sensor Prefix'] = df['Sensor ID'].apply(lambda x: x.split('.')[0])
+        df['Filename_Prefix'] = df['Filename'].apply(lambda x: x.split("_")[0])
 
         for prefix in df['Sensor Prefix'].unique():
-            plt.figure(figsize=(16, 10))  # Set a large figure size for high resolution
+            plt.figure(figsize=(16, 10))
+            file_name = f'{df["Filename_Prefix"].iloc[0]}_{df["Analyte"].iloc[0]}_{df["Material"].iloc[0]}_tau_on_{prefix}.png'
             
             df_prefix = df[df['Sensor Prefix'] == prefix]
             
@@ -150,16 +118,12 @@ class DataSummary:
                 plt.scatter(df_conc['Sensor ID'], df_conc['Tau On'], label=f'{conc} ppm')
 
             plt.xlabel('Sensor ID')
-            plt.ylabel('Delta R On')
-            plt.title(f'Delta R On for Sensors with Prefix {prefix}')
+            plt.ylabel('Tau On')  # Corrected label
+            plt.title(f'Tau On for Sensors with Prefix {prefix}')
             plt.yscale('log')
             plt.legend(title='Concentration (ppm)')
-            plt.savefig(os.path.join(output_dir, f'tau_on_{prefix}.png'), dpi=300)  # Save with high DPI for better quality
+            plt.savefig(os.path.join(output_dir, file_name), dpi=300)
             plt.close()
-
-
-
-
 
 if __name__ == '__main__':
     data_dir = 'json_folder'
