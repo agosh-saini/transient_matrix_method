@@ -45,8 +45,10 @@ class DataSummary:
                 'Sensor ID': content['Sensor Type'],
                 'Delta R On': content['RC_on']['Delta_R'],
                 'Tau On': content['RC_on']['tau'],
+                'R0 On': content['RC_on']['R0'],
                 'Delta R Off': content['RC_off']['Delta_R'],
                 'Tau Off': content['RC_off']['tau'],
+                'R0 Off': content['RC_off']['R0']
             }
         return summary
     
@@ -88,12 +90,12 @@ class DataSummary:
             
             for conc in df_prefix['Conc'].unique():
                 df_conc = df_prefix[df_prefix['Conc'] == conc]
-                plt.scatter(df_conc['Sensor ID'], df_conc['Delta R On'], label=f'{conc} ppm')
+                plt.scatter(df_conc['Sensor ID'], (df_conc['R0 On'] + df_conc['Delta R On'])/df_conc['R0 On'], label=f'{conc} ppm')
 
             plt.xlabel('Sensor ID')
             plt.ylabel('Delta R On')
             plt.title(f'Delta R On for Sensors with Prefix {prefix}')
-            plt.yscale('log')
+            #plt.yscale('log')
             plt.legend(title='Concentration (ppm)')
             plt.savefig(os.path.join(output_dir, file_name), dpi=300)
             plt.close()

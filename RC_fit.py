@@ -65,6 +65,37 @@ class RC_fit:
         self.baseline()
         self.on = self.data[self.data['Cycle'].str.contains('On', case=False)].copy()
         self.off = self.data[self.data['Cycle'].str.contains('Off', case=False)].copy()
+    
+    def extract_baseline(self, seconds=100):
+        '''
+        Calculate the baseline resistance using the last 'seconds' of data
+        '''
+        self.baseline_data = self.y[-seconds:]
+        self.baseline_time = self.x[-seconds:]
+    
+    def baseline_model(self, x, m, c):
+        '''
+        Model function for the baseline
+        Parameters:
+            x: Time
+            y: Resistance
+            m: Slope
+            c: Intercept
+        Returns:
+            y: Resistance
+        '''
+        return m * x + c
+    
+    def fit_baseline(self):
+        '''
+        Fit the baseline resistance using the last 'seconds' of data
+        '''
+        popt, _ = curve_fit(self.baseline_model, self.baseline_time, self.baseline_data)
+        self.baseline = self.baseline_model(self.baseline_time, *popt)
+
+        self.on_resistance_corrected = self.on - self.baseline_model(self.on_time, *popt)
+        self.off_resistance_corrected = self.off - self.baseline_model(self.off_time, *popt)
+
 
     def RC_on_model(self, t, R0, Rf, C):
         '''
@@ -91,59 +122,71 @@ class RC_fit:
             y: Resistance
         '''
         return Rf + (R0 - Rf) * np.exp(-t / C)
+    
 
-    def baseline_model(self, x, m, c):
+    def compute_r_squared(self, y_true, y_pred):
         '''
-        Model function for the baseline
-        Parameters:
-            x: Time
-            y: Resistance
-            m: Slope
-            c: Intercept
-        Returns:
-            y: Resistance
+        Compute the R-squared value for the model
         '''
-        return m * x + c
+        ss_res = np.sum((y_true - y_pred) ** 2)
+        ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+        r_squared = 1 - (ss_res / ss_tot)
+        return r_squared
 
-    def baseline(self):
-        '''
-        Subtract the baseline from the data
-        '''
-        popt, _ = curve_fit(self.baseline_model, self.baseline_time, self.baseline_data)
-        self.baseline = self.baseline_model(self.baseline_time, *popt)
 
-        # Subtract the baseline from the full dataset
-        self.on_resistance_corrected = self.on - self.baseline_model(self.on_time, *popt)
-        self.off_resistance_corrected = self.off - self.baseline_model(self.off_time, *popt)
-
-    def fit(self):
+    def fit(self, r_squared_threshold=0.9):
         '''
-        Fit the model to the data
+        Fit the model to the data if R^2 exceeds a threshold.
         '''
         # Shift time so that t = 0 at the start
         self.on_time_shifted = self.on_time - self.on_time.min()
         self.off_time_shifted = self.off_time - self.off_time.min()
 
         # Subtract the baseline from the "on" and "off" cycles
-        self.baseline()
+        self.fit_baseline()
 
-        # Provide better initial guesses based on the observed data
+        # Initial guesses based on the observed data
         R0_on_guess = self.on_resistance_corrected.max()  # Initial resistance guess for "on"
         Rf_on_guess = self.on_resistance_corrected.min()  # Final resistance guess for "on"
-        C_on_guess = 10  # Time constant guess for on cycle (adjust this if necessary)
+        C_on_guess = 10  # Time constant guess for on cycle (adjust if necessary)
 
-        # Fit the "on" cycle data with shifted time (fitting both R0 and Rf)
+        # Fit the "on" cycle data with shifted time
         popt_on, _ = curve_fit(self.RC_on_model, self.on_time_shifted, self.on_resistance_corrected, p0=[R0_on_guess, Rf_on_guess, C_on_guess])
         self.popt_on = popt_on
+
+        # Calculate predicted values and R^2 for "on" cycle
+        on_predicted = self.RC_on_model(self.on_time_shifted, *popt_on)
+        r_squared_on = self.compute_r_squared(self.on_resistance_corrected, on_predicted)
+
+        # Check R^2 for "on" cycle
+        if r_squared_on < r_squared_threshold:
+            self.tau_on = 0
+            self.delta_r_on = 0
+        else:
+            self.tau_on = popt_on[2]
+            self.delta_r_on = popt_on[0] - popt_on[1]
 
         # Use the last value from the "on" cycle as the initial guess for Rf in the "off" cycle
         Rf_off_guess = self.on_resistance_corrected[-1]  # Last value in the on cycle
         R0_off_guess = self.off_resistance_corrected.max()  # Initial guess for R0 in the off cycle
         C_off_guess = 10  # Time constant guess for off cycle
 
-        # Fit the "off" cycle data with shifted time and use Rf_off_guess
+        # Fit the "off" cycle data with shifted time
         popt_off, _ = curve_fit(self.RC_off_model, self.off_time_shifted, self.off_resistance_corrected, p0=[R0_off_guess, Rf_off_guess, C_off_guess])
         self.popt_off = popt_off
+
+        # Calculate predicted values and R^2 for "off" cycle
+        off_predicted = self.RC_off_model(self.off_time_shifted, *popt_off)
+        r_squared_off = self.compute_r_squared(self.off_resistance_corrected, off_predicted)
+
+        # Check R^2 for "off" cycle
+        if r_squared_off < r_squared_threshold:
+            self.tau_off = 0
+            self.delta_r_off = 0
+        else:
+            self.tau_off = popt_off[2]
+            self.delta_r_off = popt_off[0] - popt_off[1]
+
 
     def plot(self, show_plot=False, save_plot=False, file_name=None, graph_folder=None):
         '''
@@ -185,19 +228,28 @@ class RC_fit:
         '''
         Return the fitted parameters and time constants (tau) for both "on" and "off" cycles
         '''
-        R0_on, Rf_on, tau_on = self.popt_on
-        R0_off, Rf_off, tau_off = self.popt_off
+        _, _, tau_on = self.popt_on
+        _, _, tau_off = self.popt_off
+
+        R_on = self.on[-1]
+        R_off = self.off[-1]
+
+        R0_on = self.on[0]
+        R0_off = self.off[0]
         
         return {
             "on": {
-                "Delta_R": int(R0_on - Rf_on),
-                "tau": int(tau_on)
+                "Delta_R": R0_on - R_on,
+                "tau": tau_on,
+                "R0": R0_on
             },
             "off": {
-                "Delta_R": int(R0_off - Rf_off),
-                "tau": int(tau_off)
+                "Delta_R": R0_off - R_off,
+                "tau": tau_off,
+                "R0": R0_off
             }
         }
+    
 
 ######### MAIN FUNCTION #########
 if __name__ == '__main__':
