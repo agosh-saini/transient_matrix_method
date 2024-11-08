@@ -9,7 +9,8 @@
 
 ######### IMPORTS #########
 import numpy as np
-import pandas as pd
+import time
+import os
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
@@ -144,7 +145,7 @@ class RC_fit:
         popt_off, _ = curve_fit(self.RC_off_model, self.off_time_shifted, self.off_resistance_corrected, p0=[R0_off_guess, Rf_off_guess, C_off_guess])
         self.popt_off = popt_off
 
-    def plot(self):
+    def plot(self, show_plot=False, save_plot=False, file_name=None, graph_folder=None):
         '''
         Plot the fitted model
         '''
@@ -159,8 +160,27 @@ class RC_fit:
         plt.xlabel('Time')
         plt.ylabel('Resistance (Corrected)')
         plt.legend()
-        plt.show()
 
+        if show_plot:
+            plt.show()
+
+        if save_plot:
+
+            if file_name is None:
+                file_name = f'{time.time()}_RC_plot'
+            
+            if graph_folder is None:
+                graph_folder = 'graph_folder'
+            
+            if not os.path.exists(graph_folder):
+                os.makedirs(graph_folder)
+
+            file_name = os.path.basename(file_name)
+
+            plt.savefig(f'{graph_folder}/{file_name}.png')
+            plt.close()
+
+        
     def get_parameters(self):
         '''
         Return the fitted parameters and time constants (tau) for both "on" and "off" cycles
@@ -181,16 +201,27 @@ class RC_fit:
 
 ######### MAIN FUNCTION #########
 if __name__ == '__main__':
+
+    def generate_data(x,dir=1, seed=42):
+        '''
+        Generate example data for testing
+        '''
+
+        random = np.random.RandomState(seed)
+        y = 100 + 50 * np.exp(-dir*x / 10) + random.normal(0, 5, x.size)
+        return y
+
+
     # Example: Directly passing pre-processed 'on', 'off', and 'baseline' cycles as NumPy arrays
     baseline_cycle = np.linspace(100, 200, 50)  # Baseline resistance
-    on_cycle = np.random.normal(150, 5, 100)  # Resistance data for "on" cycle
-    off_cycle = np.random.normal(100, 5, 100)  # Resistance data for "off" cycle
+    on_cycle = generate_data(np.linspace(0, 100, 100))  # Resistance data for "on" cycle
+    off_cycle = generate_data(np.linspace(0, 100, 100), -1)  # Resistance data for "off" cycle
 
     # Assuming an average timestep of 0.5 seconds
     timestep = 0.5
 
     rc = RC_fit(on=on_cycle, off=off_cycle, baseline=baseline_cycle, timestep=timestep)
     rc.fit()
-    rc.plot()
+    rc.plot(save_plot=True, show_plot=True, file_name='RC_plot', graph_folder='graph_folder') 
     print(rc.get_parameters())
 
