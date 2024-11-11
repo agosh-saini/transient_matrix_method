@@ -73,24 +73,23 @@ class RC_fit:
         self.baseline_data = self.y[-seconds:]
         self.baseline_time = self.x[-seconds:]
     
-    def baseline_model(self, x, m, c):
+    def baseline_model(self, x, a, b):
         '''
-        Model function for the baseline
+        Model function for the baseline resistance
         Parameters:
             x: Time
-            y: Resistance
-            m: Slope
-            c: Intercept
+            a: Slope
+            b: Intercept
         Returns:
             y: Resistance
         '''
-        return m * x + c
+        return a * x + b
     
-    def fit_baseline(self):
+    def fit_baseline(self, seconds=100):
         '''
         Fit the baseline resistance using the last 'seconds' of data
         '''
-        popt, _ = curve_fit(self.baseline_model, self.baseline_time, self.baseline_data)
+        popt, _ = curve_fit(self.baseline_model, self.baseline_time[self.baseline_time > (self.baseline_time[-1]-seconds)], self.baseline_data[self.baseline_time > (self.baseline_time[-1]-seconds)])  
         self.baseline = self.baseline_model(self.baseline_time, *popt)
 
         self.on_resistance_corrected = self.on - self.baseline_model(self.on_time, *popt)
@@ -223,7 +222,35 @@ class RC_fit:
             plt.savefig(f'{graph_folder}/{file_name}.png')
             plt.close()
 
+
+
+    def visualize_baseline(self, name=None, show_plot=False, save_plot=False):
+        '''
+        Visualize the baseline resistance
+        '''
+        plt.plot(self.baseline_time, self.baseline_data, 'go', label='Baseline Data')
+        plt.plot(self.baseline_time, self.baseline, 'g-', label='Baseline Fit')
+
+        # Plot the "on" cycle data with the fitted model using shifted time
+        plt.plot(self.on_time, self.on, 'bo', label='On Data (Corrected)')
+
+        # Plot the "off" cycle data with the fitted model using shifted time
+        plt.plot(self.off_time, self.off, 'ro', label='Off Data (Corrected)')
+
+        plt.xlabel('Time')
+        plt.ylabel('Resistance')
+        plt.legend()
+
+        if show_plot:
+            plt.show()
         
+        if save_plot:
+            if not os.path.exists('baseline'):
+                os.makedirs('baseline')
+            
+            plt.savefig(f'baseline/{time.time() if name is None else name}_RC_plot.png')
+            plt.close()
+
     def get_parameters(self):
         '''
         Return the fitted parameters and time constants (tau) for both "on" and "off" cycles

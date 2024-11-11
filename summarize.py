@@ -127,6 +127,59 @@ class DataSummary:
             plt.savefig(os.path.join(output_dir, file_name), dpi=300)
             plt.close()
 
+    def plot_off_tau_grouped_by_prefix(self, output_dir):
+        '''
+        Plot the Tau Off values for each sensor prefix with all concentrations in one figure
+        and save a large, high-resolution version of the image.
+        '''
+        df = pd.read_csv(os.path.join(output_dir, 'summary.csv'))
+        df['Sensor Prefix'] = df['Sensor ID'].apply(lambda x: x.split('.')[0])
+        df['Filename_Prefix'] = df['Filename'].apply(lambda x: x.split("_")[0])
+
+        for prefix in df['Sensor Prefix'].unique():
+            plt.figure(figsize=(16, 10))
+            file_name = f'{df["Filename_Prefix"].iloc[0]}_{df["Analyte"].iloc[0]}_{df["Material"].iloc[0]}_tau_off_{prefix}.png'
+            
+            df_prefix = df[df['Sensor Prefix'] == prefix]
+            
+            for conc in df_prefix['Conc'].unique():
+                df_conc = df_prefix[df_prefix['Conc'] == conc]
+                plt.scatter(df_conc['Sensor ID'], df_conc['Tau Off'], label=f'{conc} ppm')
+
+            plt.xlabel('Sensor ID')
+            plt.ylabel('Tau Off')
+            plt.title(f'Tau Off for Sensors with Prefix {prefix}')
+            plt.yscale('log')
+            plt.legend(title='Concentration (ppm)')
+            plt.savefig(os.path.join(output_dir, file_name), dpi=300)
+            plt.close()
+    
+    def plot_off_delta_r_grouped_by_prefix(self, output_dir):
+        '''
+        Plot the Delta R Off values for each sensor prefix with all concentrations in one figure
+        and save a large, high-resolution version of the image.
+        '''
+        df = pd.read_csv(os.path.join(output_dir, 'summary.csv'))
+        df['Sensor Prefix'] = df['Sensor ID'].apply(lambda x: x.split('.')[0])
+        df['Filename_Prefix'] = df['Filename'].apply(lambda x: x.split("_")[0])
+
+        for prefix in df['Sensor Prefix'].unique():
+            plt.figure(figsize=(16, 10))
+            file_name = f'{df["Filename_Prefix"].iloc[0]}_{df["Analyte"].iloc[0]}_{df["Material"].iloc[0]}_delta_r_off_{prefix}.png'
+            
+            df_prefix = df[df['Sensor Prefix'] == prefix]
+            
+            for conc in df_prefix['Conc'].unique():
+                df_conc = df_prefix[df_prefix['Conc'] == conc]
+                plt.scatter(df_conc['Sensor ID'], (df_conc['R0 Off'] + df_conc['Delta R Off'])/df_conc['R0 Off'], label=f'{conc} ppm')
+
+            plt.xlabel('Sensor ID')
+            plt.ylabel('Delta R Off')
+            plt.title(f'Delta R Off for Sensors with Prefix {prefix}')
+            plt.legend(title='Concentration (ppm)')
+            plt.savefig(os.path.join(output_dir, file_name), dpi=300)
+            plt.close()
+
 if __name__ == '__main__':
     data_dir = 'json_folder'
     output_dir = 'summary_output'
@@ -146,3 +199,9 @@ if __name__ == '__main__':
 
     ds.plot_tau_grouped_by_prefix(output_dir)
     print('Tau plots generated successfully')
+
+    ds.plot_off_tau_grouped_by_prefix(output_dir)
+    print('Off Tau plots generated successfully')
+
+    ds.plot_off_delta_r_grouped_by_prefix(output_dir)
+    print('Delta R Off plots generated successfully')

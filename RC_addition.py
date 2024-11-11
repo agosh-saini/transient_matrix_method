@@ -77,7 +77,7 @@ class RC_addition:
         except Exception as e:
             raise ValueError(f"Failed to add RC values to {self.filepath}") from e
 
-    def plot_graph(self):
+    def plot_graph(self, visualize={'show': False, 'save': True}):
         '''
         Plot the graph of the RC model.
         '''
@@ -88,6 +88,12 @@ class RC_addition:
         
         except Exception as e:
             raise ValueError("Error in plotting the graph") from e
+           
+        if visualize['show']:
+            rc.visualize_baseline(show_plot=True)
+        if visualize['save']:
+            rc.visualize_baseline(name=self.file_name, show_plot=visualize['show'], save_plot=visualize['save'])
+    
 
     def run(self):
         '''
@@ -95,7 +101,7 @@ class RC_addition:
         '''
         self.get_values(file_name=self.filepath)
         RC_values = self.get_RC_values()
-        self.plot_graph()
+        self.plot_graph(visualize={'show': False, 'save': True})
         self.add_RC_values(RC_values)
 
 

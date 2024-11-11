@@ -166,6 +166,7 @@ json_folder/*.json
 graph_folder/*.png 
 summary_output/*.png
 summary_output/*.csv
+baseline/*.png
 
 
 
