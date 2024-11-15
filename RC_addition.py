@@ -38,11 +38,14 @@ class RC_addition:
 
             self.on = np.array(data['ON'])
             self.off = np.array(data['OFF'])
+            ''' Remove the baseline if not needed '''
+            '''
             self.baseline = np.array(data['Baseline'])
+            '''
             self.timestep = int(data['timestep'])
             self.file_name = str(data['filename'])
 
-            return self.on, self.off, self.baseline, self.timestep, self.file_name
+            return self.on, self.off, self.timestep, self.file_name
         
         except FileNotFoundError:
             raise ValueError(f"File {file_name} not found")
@@ -52,7 +55,7 @@ class RC_addition:
         Fit the RC model and get the RC values.
         '''
         try: 
-            rc = RC_fit(on=self.on, off=self.off, baseline=self.baseline, timestep=self.timestep)
+            rc = RC_fit(on=self.on, off=self.off, timestep=self.timestep)
             rc.fit()
             self.RC_value = rc.get_parameters()
             return self.RC_value
@@ -82,17 +85,13 @@ class RC_addition:
         Plot the graph of the RC model.
         '''
         try: 
-            rc = RC_fit(on=self.on, off=self.off, baseline=self.baseline, timestep=self.timestep)
+            rc = RC_fit(on=self.on, off=self.off, timestep=self.timestep)
             rc.fit()
             rc.plot(save_plot=True, file_name=self.file_name, graph_folder=self.graph_path)
         
         except Exception as e:
             raise ValueError("Error in plotting the graph") from e
            
-        if visualize['show']:
-            rc.visualize_baseline(show_plot=True)
-        if visualize['save']:
-            rc.visualize_baseline(name=self.file_name, show_plot=visualize['show'], save_plot=visualize['save'])
     
 
     def run(self):
@@ -117,6 +116,7 @@ if __name__ == '__main__':
     if not os.path.exists(graph_path):
         os.mkdir(graph_path)
     
-    for file in os.listdir(folder_path):
+    for i, file in enumerate(os.listdir(folder_path)):
         rc_addition = RC_addition(f'{folder_path}/{file}', graph_path=graph_path)
         rc_addition.run()
+        print(f'RC values added to {file} - File {i+1}/{len(os.listdir(folder_path))}')
