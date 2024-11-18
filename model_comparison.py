@@ -35,7 +35,7 @@ data["Conc"] = data["Conc"].map(class_values)
 ############# Prepare Features ############
 
 # Create a unique identifier for each sample - File name is unique for each sample and can also be used
-data['Sample ID'] = data.index 
+data['Sample ID'] = data['Filename']
 
 # Pivot the dataset to aggregate sensor data
 pivoted_data = data.pivot(index="Sample ID", columns="Sensor ID")[["Delta R On", "Delta R Off"]].reset_index()
