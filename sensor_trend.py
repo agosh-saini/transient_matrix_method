@@ -241,7 +241,7 @@ plt.show()
 
 
 # Check group response for sensors during On Cycle
-x, y = [], []
+x, y, err = [], [], []
 
 for sensor in df['Sensor ID'].unique():
 
@@ -253,9 +253,11 @@ for sensor in df['Sensor ID'].unique():
         y_temp = remove_outliers(y_temp)
 
         y.append(np.mean(y_temp))
+        err.append(np.std(y_temp))
 
 plt.figure(figsize=(10, 6))
 plt.scatter(x, y)
+plt.errorbar(x, y, yerr=err, fmt='o', ecolor='r', capthick=2)
 plt.xlabel('Sensor Group Response - On Cycle') 
 plt.xticks(rotation=90)
 plt.ylabel('Slope On')
@@ -265,7 +267,7 @@ plt.show()
 
 
 # Check group response for sensors during Off Cycle
-x, y = [], []
+x, y, err = [], [], []
 
 for sensor in df['Sensor ID'].unique():
 
@@ -277,9 +279,11 @@ for sensor in df['Sensor ID'].unique():
         y_temp = remove_outliers(y_temp)
 
         y.append(np.mean(y_temp))
+        err.append(np.std(y_temp))
 
 plt.figure(figsize=(10, 6))
 plt.scatter(x, y)
+plt.errorbar(x, y, yerr=err, fmt='o', ecolor='r', capthick=2)
 plt.xlabel('Sensor Group Response - Off Cycle')
 plt.xticks(rotation=90)
 plt.ylabel('Slope Off')
