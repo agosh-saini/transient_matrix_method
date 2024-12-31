@@ -46,9 +46,11 @@ class DataSummary:
                 'Delta R On': content['RC_on']['Delta_R'],
                 'Tau On': content['RC_on']['tau'],
                 'R0 On': content['RC_on']['R0'],
+                'P_change On': (content['RC_on']['R0'] + content['RC_on']['Delta_R'])/content['RC_on']['R0'],
                 'Delta R Off': content['RC_off']['Delta_R'],
                 'Tau Off': content['RC_off']['tau'],
-                'R0 Off': content['RC_off']['R0']
+                'R0 Off': content['RC_off']['R0'],
+                'P_change Off': (content['RC_off']['R0'] + content['RC_off']['Delta_R'])/content['RC_off']['R0']
             }
         return summary
     
