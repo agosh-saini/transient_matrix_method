@@ -167,6 +167,7 @@ graph_folder/*.png
 summary_output/*.png
 summary_output/*.csv
 baseline/*.png
+LOD_results/*
 
 
 
